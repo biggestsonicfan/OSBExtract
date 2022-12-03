@@ -23,7 +23,7 @@ public static class MLT
                     byte[] unknown_flag2 = reader.ReadBytes(4);
                     byte[] padding = reader.ReadBytes(20);
                     long startPos = reader.BaseStream.Position;
-                    OSB2.Extract(startPos, inFile, outDir);
+                    OSB.Extract(startPos, inFile, outDir);
                 }
             }
         }

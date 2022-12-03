@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-public static class OSB2
+public static class OSB
 {
 
     public class fileIndex

@@ -58,7 +58,7 @@ namespace OSBExtract
             {
                 Console.Write("Extracting {0}", fname);
 
-                OSB2.Extract(0, inFile, Path.Combine(dir, fnameWithoutExt));
+                OSB.Extract(0, inFile, Path.Combine(dir, fnameWithoutExt));
 
                 Console.WriteLine(" ... OK");
             }

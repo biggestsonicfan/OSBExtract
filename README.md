@@ -27,4 +27,4 @@ A tool for extracting OSB archives from Dreamcast games. Can also extract OSBs f
 ## To Do:
 - Figure out proper parsing of MLT header data
 - Figure out unknown ADPCM flag meanings
-- Possibly use [ADPCM by andyroodee](https://github.com/andyroodee/ADPCM) for conversion instead of builtin.
+- Integrate [AicaADPCM2WAV by Sappharad](https://github.com/Sappharad/AicaADPCM2WAV) for conversion instead of builtin.

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 
 // Dreamcast AICA ADPCM
 // Much of this code comes from vgmstream

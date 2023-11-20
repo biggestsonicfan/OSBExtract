@@ -13,7 +13,7 @@ OSBExtract -i <file or directory>
   -o, --output     WAVE output folder (Default is same as input folder).
   -x, --extra      Output extra data not included in the OSB to WAVE conversion (Saves to output folder).
   -v, --verbose    Set view verbose information used for debugging.
-  -s, --sample     Use alternate sample rate of 32kHz (Default is 44.1kHz). Appends "(32kHz)"" to filename
+  -s, --sample     Use alternate sample rate of 32kHz (Default is 44.1kHz). Appends "(32kHz)" to filename
   --help           Display this help screen.
   --version        Display version information.
  ```

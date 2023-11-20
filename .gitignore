@@ -1,5 +1,5 @@
 
-#ignore thumbnails created by windows
+#Ignore thumbnails created by Windows
 Thumbs.db
 #Ignore files build by Visual Studio
 *.obj
@@ -24,7 +24,11 @@ Thumbs.db
 *.lib
 *.sbr
 obj/
+[Pp]roperties/
 [Rr]elease*/
 _ReSharper*/
+*.config
 [Tt]est[Rr]esult*
 /.vs
+#Ignore Packages
+[Pp]ackages

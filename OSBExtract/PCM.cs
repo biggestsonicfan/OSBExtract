@@ -4,8 +4,8 @@ using System.Text;
 
 class PCM
 {
-    public static void ToWav(byte[] dataBuffer, int dataLength, string outFile, int formatSize = 16, Int16 formatCode = 1,
-         Int16 channels = 1, int sampleRate = 44100, Int16 bitDepth = 16)
+    public static void ToWav(in byte[] dataBuffer, int dataLength, string outFile, in int sampleRate = 44100, in int formatSize = 16,
+          in Int16 formatCode = 1, in Int16 channels = 1, in Int16 bitDepth = 16)
     {
         //Init the Wave Header byte Array
         byte[] WavHeader = new byte[44];
@@ -20,7 +20,7 @@ class PCM
         byte[] bLength = BitConverter.GetBytes(dataLength + WavHeader.Length - 8);
         //Get Format Size
         byte[] bFormatSize = BitConverter.GetBytes(formatSize);
-        //Get Format Code
+        //Get Format Code   
         byte[] bFormatCode = BitConverter.GetBytes(formatCode);
         //Get Channel Count
         byte[] bChannels = BitConverter.GetBytes(channels);

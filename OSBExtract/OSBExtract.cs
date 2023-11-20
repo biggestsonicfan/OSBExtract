@@ -1,106 +1,155 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using CommandLine;
+using CommandLine.Text;
 
 namespace OSBExtract
 {
     public class OSBExtract
     {
+        public class Options
+        {
+            [Option('i', "input", Required = true, HelpText = "Input files to be processed. Can be files or directories.")]
+            public IEnumerable<string> InputFiles { get; set; }
+            [Option('o', "output", Required = false, HelpText = "WAVE output folder (Default is same as input folder).")]
+            public string OutputFiles { get; set; }
+            [Option('x', "extra", Required = false, HelpText = "Output extra data not included in the OSB to WAVE conversion.")]
+            public bool Extra { get; set; }
+            [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages.")]
+            public bool Verbose { get; set; }
+            [Option('s', "sample", Required = false, HelpText = "Use alternate sample rate of 32kHz (Default is 44.1kHz).")]
+            public bool Sample { get; set; }
+
+        }
         public static void Main(string[] args)
         {
-            Console.WriteLine("OSBExtract");
+            var parser = new CommandLine.Parser(with => with.HelpWriter = null);
+            var parserResult = parser.ParseArguments<Options>(args);
 
-            // If we have an argument, clearly we want to do something.
-            if (args.Length == 1)
-            {
-                bool isFile = false, isDir = false;
+            parserResult
+              .WithParsed<Options>(opts =>
+              {
+                  foreach (string input in opts.InputFiles)
+                  {
+                      // Let's check to see if input is a file or directory
+                      bool isFile = File.Exists(input), isDir = Directory.Exists(input);
 
-                // Let's check to see if args[0] is a file or directory
-                if (File.Exists(args[0])) isFile = true;
-                if (Directory.Exists(args[0])) isDir = true;
+                      // If it's not a file and it's not a directory, don't continue
+                      if (!isFile && !isDir)
+                      {
+                          Console.WriteLine("Not a valid file or directory: {0}", input);
+                      }
+                      else if (isFile && !isDir)
+                      {
+                          CheckFile(in input, in opts);
+                      }
+                      else if (isDir && !isFile)
+                      {
+                          foreach (string file in Directory.GetFiles(input))
+                          {
+                              CheckFile(in file, in opts);
+                              GC.Collect();
+                          }
+                      }
+                      else 
+                      {
+                          Console.WriteLine("Input is both a file and directory? : {0}", input);
+                      }
+                  }
+                  Console.Write("Press any key to exit...");
+                  Console.ReadKey();
+              })
+              .WithNotParsed<Options>((errs) =>
+              {
+                  var helpText = HelpText.AutoBuild(parserResult, h =>
+                  {
+                      h.AdditionalNewLineAfterOption = false;
+                      h.Copyright = "";
+                      h.Heading = "OBSExtract - https://github.com/biggestsonicfan/OSBExtract";
+                      return HelpText.DefaultParsingErrorsHandler(parserResult, h);
+                  }, e => e);
+                  Console.WriteLine(helpText);
 
-                // If it's not a file and it's not a directory, don't continue
-                if (!isFile && !isDir)
-                {
-                    Console.WriteLine("I don't know what you want to do!");
-                    return;
-                }
-
-                // Now we can convert or extract this file or files in this directory
-                if (isFile)
-                {
-                    CheckFile(args[0]);
-                }
-                else if (isDir)
-                {
-                    foreach (string file in Directory.GetFiles(args[0]))
-                    {
-                        CheckFile(file);
-                        GC.Collect();
-                    }
-                }
-            }
-            else
-            {
-                Console.WriteLine("Usage: OSBExtract <file or directory>");
-            }
+              });
         }
 
-        private static void CheckFile(string inFile)
+        private static string OutputDir(in string inFile, string outDir)
+        {
+            //Path handling nonsense goes here
+            if (!String.IsNullOrWhiteSpace(outDir))
+            {
+                try
+                {
+                    string outPath = Path.GetFullPath(outDir);
+                    if (!Directory.Exists(outPath))
+                    {
+                        Directory.CreateDirectory(outPath);
+                    }
+                    return outPath;
+                }
+                catch (Exception)
+                {
+                    Console.Write("Error: Issue with provided output directory: {0} - Using input file directory.", outDir);
+                    return Directory.GetParent(inFile).FullName;
+                }         
+            }
+            else
+                return Directory.GetParent(inFile).FullName;
+        }
+
+        private static void CheckFile(in string inFile, in Options opts)
         {
             // Get the file name, file extension, and parent directory
-            string dir = Directory.GetParent(inFile).FullName;
+            string outDir = OutputDir(in inFile, opts.OutputFiles);
             string fname = Path.GetFileName(inFile);
             string fnameWithoutExt = Path.GetFileNameWithoutExtension(inFile);
             string fext = Path.GetExtension(inFile).ToLower();
 
-            // OSB
-            if (fext == ".osb")
+            switch (fext)
             {
-                Console.Write("Extracting {0}", fname);
+                // OSB
+                case ".osb":
+                    {
+                        Console.Write("Extracting {0}", fname);
+                        OSB.Extract(0, inFile, Path.Combine(outDir, fnameWithoutExt), in opts);
+                        Console.WriteLine(" ... OK");
 
-                OSB.Extract(0, inFile, Path.Combine(dir, fnameWithoutExt));
+                        break;
+                    }
+                // P04 (aka ADPCM aka ACIA aka Yamaha 4-bit ADPCM)
+                case ".p04":
+                    {
+                        Console.Write("Converting {0} to WAV", fname);
+                        byte[] buffer = File.ReadAllBytes(inFile);
+                        //buffer = ADPCM.ToRaw(buffer, 0, buffer.Length);
+                        buffer = ADPCM.adpcm2pcm(in buffer, 0, (uint)buffer.Length);
+                        PCM.ToWav(in buffer, buffer.Length, Path.Combine(outDir, fnameWithoutExt + ".wav"));
+                        Console.Write(" ... OK\n");
+                        break;
+                    }
+                // 16-bit PCM
+                case ".p16":
+                    {
+                        Console.Write("Converting {0} to WAV", fname);
+                        byte[] buffer = File.ReadAllBytes(inFile);
+                        PCM.ToWav(in buffer, buffer.Length, Path.Combine(outDir, fnameWithoutExt + ".wav"));
+                        Console.Write(" ... OK\n");
+                        break;
+                    }
+                // MLT
+                case ".mlt":
+                    {
+                        Console.Write("Extracting {0}", fname);
+                        MLT.Extract(inFile, Path.Combine(outDir, fnameWithoutExt), in opts);
+                        Console.Write(" ... OK\n");
+                        break;
+                    }
+                // Unknown
+                default:
+                    Console.WriteLine("Skipping {0}", fname);
+                    break;
 
-                Console.WriteLine(" ... OK");
-            }
-
-            // P04 (aka ADPCM aka ACIA aka Yamaha 4-bit ADPCM)
-            else if (fext == ".p04")
-            {
-                Console.Write("Converting {0} to WAV", fname);
-
-                byte[] buffer = File.ReadAllBytes(inFile);
-                buffer = ADPCM.ToRaw(buffer, 0, buffer.Length);
-                PCM.ToWav(buffer, buffer.Length, Path.Combine(dir, fnameWithoutExt + ".wav"));
-
-                Console.WriteLine(" ... OK");
-             
-            }
-
-            // 16-bit PCM
-            else if (fext == ".p16")
-            {
-                Console.Write("Converting {0} to WAV", fname);
-
-                byte[] buffer = File.ReadAllBytes(inFile);
-                PCM.ToWav(buffer, buffer.Length, Path.Combine(dir, fnameWithoutExt + ".wav"));
-
-                Console.WriteLine(" ... OK");
-            }
-
-            // MLT
-            else if (fext == ".mlt")
-            {
-                Console.Write("Extracting {0}", fname);
-
-                MLT.Extract(inFile, Path.Combine(dir, fnameWithoutExt));
-
-                Console.WriteLine(" ... OK");
-            }
-
-            // Unknown
-            else
-            {
-                Console.WriteLine("Skipping {0}", fname);
             }
         }
     }

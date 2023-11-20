@@ -16,6 +16,7 @@ OSBExtract -i <file or directory>
   -s, --sample     Use alternate sample rate of 32kHz (Default is 44.1kHz). Appends "(32kHz)"" to filename
   --help           Display this help screen.
   --version        Display version information.
+ ```
 
 ## Differences
 - OSB files now have their data extracted in a dynamic way.
